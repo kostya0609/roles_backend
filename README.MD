@@ -44,3 +44,15 @@ use App\Modules\Roles\Facades\DynamicRoleFacade;
 
 $users = DynamicRoleFacade::getUsersByRoleId(DynamicRole::DIRECT_SUPERVISOR, 14317);
 ```
+
+## Особенности работы с некоторыми ролями
+
+### Роль "Инициатор документа"
+
+Требует передачи дополнительного параметра document_initiator_id (идентификатор инициатора документа, должен быть известен заранее). Данную роль нет возможности проверить через интерфейс (в админки или в компоненте поиска пользователей), т.к. это необходимо для упрощения интеграции этой роли.
+
+```php
+<?php
+
+$users = DynamicRoleFacade::getUsersByRoleId($dynamic_role_id, $user_id, ['document_initiator_id' => $document_initiator_id]);
+```

@@ -1,19 +1,14 @@
 <?php
+
 namespace App\Modules\Roles\Services;
 
 use Illuminate\Support\Collection;
-use App\Modules\Roles\Models\{StaticRole, ParticipantStaticRole, User};
-use App\Modules\Roles\Dto\{FilterDto, UpdateStaticRoleDto, CreateStaticRoleDto};
+use App\Modules\Roles\Dto\{UpdateStaticRoleDto, CreateStaticRoleDto};
+use App\Modules\Roles\Models\{StaticRole, ParticipantStaticRole, User, StaticRolePartitionView, StaticRolePartition};
+use App\Modules\BsiTable\FilterFacade;
 
 class StaticRoleService
 {
-	protected FilterService $filterService;
-
-	public function __construct(FilterService $filterService)
-	{
-		$this->filterService = $filterService;
-	}
-
 	public function create(CreateStaticRoleDto $dto): StaticRole
 	{
 		return \DB::transaction(function () use ($dto): StaticRole {
@@ -22,37 +17,35 @@ class StaticRoleService
 			$role->is_active = $dto->is_active;
 			$role->description = $dto->description;
 			$role->creator_id = $dto->creator_id;
+			$role->partition_id = $dto->partition_id;
 			$role->save();
 
-            $participants = collect($dto->users)->map(function ($user_id) {
-                return new ParticipantStaticRole([
-                    'user_id' => $user_id,
-                ]);
-            });
+			$participants = collect($dto->users)->map(function ($user_id) {
+				return new ParticipantStaticRole([
+					'user_id' => $user_id,
+				]);
+			});
 
-            $role->participants()->createMany($participants->toArray());
+			$role->participants()->createMany($participants->toArray());
 
 			return $role;
 		});
 	}
 
-	public function getAll(FilterDto $dto): object
+
+	public function getLazyTree(?int $partition_id = null): Collection
 	{
-		$roles = StaticRole::orderBy($dto->sort, $dto->order);
+		return StaticRolePartitionView::query()->where('parent_id', $partition_id)->where('is_active', true)->get();
+	}
 
-		$total = $roles->count();
-		$roles = $roles->offset($dto->offset)->limit($dto->limit);
-		$roles = $roles->get();
-
-		return (object) [
-			'items' => $roles,
-			'total' => $total,
-		];
+	public function searchLazyTree(?string $query = null): Collection
+	{
+		return StaticRolePartitionView::query()->where('title', 'like', "%$query%")->where('is_active', true)->get();
 	}
 
 	public function getById(int $id)
 	{
-		$role = StaticRole::with(['participants'])->find($id);
+		$role = StaticRole::with(['participants', 'partition'])->find($id);
 
 		if (!$role) {
 			throw new \LogicException('Роль не найдена!');
@@ -70,10 +63,11 @@ class StaticRoleService
 				throw new \LogicException('Роль не найдена!');
 			}
 
-		    $role->title = $dto->title;
+			$role->title = $dto->title;
 			$role->is_active = $dto->is_active;
 			$role->description = $dto->description;
 			$role->editor_id = $dto->editor_id;
+			$role->partition_id = $dto->partition_id;
 			$role->save();
 
 			ParticipantStaticRole::where('static_role_id', '=', $dto->id)->delete();
@@ -101,12 +95,12 @@ class StaticRoleService
 		$role->delete();
 	}
 
-	public function search(string $q)
+	public function search(?string $q = null)
 	{
 		$str = explode(' ', trim($q));
 		$result = StaticRole::where(function ($query) use ($str) {
 			foreach ($str as $word) {
-				if (!empty ($word)) {
+				if (!empty($word)) {
 					$query->where('title', 'like', '%' . $word . '%');
 				}
 			}
@@ -121,10 +115,43 @@ class StaticRoleService
 		return $roles;
 	}
 
+	public function searchV2(?string $q = null): Collection
+	{
+		$str = explode(' ', trim($q));
+		return StaticRole::select(['id', 'title', 'description'])
+			->where('is_active', true)
+			->where(function ($query) use ($str) {
+				foreach ($str as $word) {
+					if (!empty($word)) {
+						$query->where('title', 'like', "%$word%");
+					}
+				}
+			})
+			->limit(10)
+			->get();
+	}
+
 	public function getUsersByRoleId(int $id): Collection
 	{
-		$users_id = ParticipantStaticRole::where('static_role_id', '=', $id)->get();
+		$users_id = ParticipantStaticRole::where('static_role_id', '=', $id)->get()->pluck('user_id');
+
 		return User::find($users_id);
 	}
-}
 
+	public function getStaticRoleByParentId()
+	{
+		$search_fields = [
+			'title' => '%like%',
+		];
+		
+		$custom_sort_fields = [
+			'creator' => User::select('LAST_NAME')->whereColumn('b_user.ID', 'l_roles_statics_partitions_view.creator_id'),
+			'editor' => User::select('LAST_NAME')->whereColumn('b_user.ID', 'l_roles_statics_partitions_view.editor_id'),
+		];
+
+		return FilterFacade::sort($custom_sort_fields)
+			->filter()
+			->search($search_fields)
+			->getAll(StaticRolePartitionView::with(['creator','editor'])->where('parent_id', '=', request()->get('parent_id')));
+	}
+}

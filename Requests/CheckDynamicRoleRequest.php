@@ -9,7 +9,6 @@ class CheckDynamicRoleRequest extends FormRequest
 		return [
 			'id' =>'required|integer',
             'check_user_id' =>'required|integer',
-			'user_id' => 'required|integer',
 		];
 	}
 
@@ -20,9 +19,6 @@ class CheckDynamicRoleRequest extends FormRequest
 
             'check_user_id.required' => 'Идентификатор проверяемого пользователя не указан',
             'check_user_id.integer' => 'Идентификатор проверяемого пользователя должен быть числом',
-
-			'user_id.required' => 'Идентификатор пользователя не указан',
-			'user_id.integer' => 'Идентификатор пользователя должен быть числом',
 		];
 	}
 }

@@ -12,15 +12,22 @@ class User extends Model
 	protected $visible = [
         'id',
         'full_name',
+		'abbreviated_name',
 		'photo',
 		'link',
+        'work'
 	];
 
-	protected $appends = ['id', 'full_name', 'photo', 'link'];
+	protected $appends = ['id', 'full_name', 'abbreviated_name','photo', 'link','work'];
 
 	public function getFullNameAttribute(): string
 	{
 		return trim($this->LAST_NAME . ' ' . $this->NAME . ' ' . $this->SECOND_NAME);
+	}
+
+	public function getAbbreviatedNameAttribute(): string
+	{
+		return trim($this->LAST_NAME . ' ' . mb_substr($this->NAME, 0, 1) . '. ' . mb_substr($this->SECOND_NAME, 0, 1) . '.');
 	}
 
 	public function getPhotoAttribute()
@@ -37,6 +44,11 @@ class User extends Model
 	public function getIdAttribute()
 	{
 		return $this->attributes['ID'];
+	}
+
+    public function getWorkAttribute()
+	{
+		return $this->attributes['WORK_POSITION'];
 	}
 
 	public function getLinkAttribute()

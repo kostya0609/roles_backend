@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $title
  * @property boolean $is_active
  * @property string $description
-  * @property int $creator_id
+ * @property int $creator_id
  * @property int $editor_id
  * @property string $created_at
  * @property string $updated_at
-  */
+ */
 class DynamicRole extends Model
 {
 	protected $table = 'l_roles_dynamics';
@@ -21,7 +21,12 @@ class DynamicRole extends Model
 		'title',
 		'is_active',
 		'description',
-        'editor_id',
-        'creator_id',
+		'editor_id',
+		'creator_id',
+		'can_check',
+	];
+	protected $casts = [
+		'is_active' => 'boolean',
+		'can_check' => 'boolean',
 	];
 }

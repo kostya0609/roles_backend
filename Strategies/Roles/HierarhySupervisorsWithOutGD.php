@@ -7,34 +7,47 @@ use Illuminate\Support\Collection;
 use App\Modules\Roles\Strategies\RoleInterface;
 use Illuminate\Support\Facades\DB;
 
-class DirectSupervisor implements RoleInterface
+class HierarhySupervisorsWithOutGD implements RoleInterface
 {
 	public function execute(int $user_id, array $params = []): Collection
 	{
+		$supervisor_ids = [];
+
 		$all_deps = $this->allDepartments();
 		$user_dep_id = $this->userDepartment($user_id)['ID'];
 
 		$user_dep = $all_deps->where('ID', $user_dep_id)->first();
-		$direct_supervisor_id = $user_dep->HEAD;
+		$supervisor_id = $user_dep->HEAD;
 		$parent_dep_id = $user_dep->IBLOCK_SECTION_ID;
 
-		//на случай если искомый пользователь сам является начальником
-		if ($user_id === $direct_supervisor_id)
-			$direct_supervisor_id = null;
+		if ($supervisor_id && $supervisor_id !== $user_id)
+			$supervisor_ids[] = $supervisor_id;
 
-		while (!$direct_supervisor_id) {
-			$parent_dep = $all_deps->where('ID', $parent_dep_id)->first();
+		$parent_dep = $all_deps->where('ID', $parent_dep_id)->first();
 
-			//на случай если у искомого пользователя нет руководителя
-			if (!$parent_dep)
-				return collect([]);
+		while ($parent_dep) {
 
-			$direct_supervisor_id = $parent_dep->HEAD;
+			$supervisor_id = $parent_dep->HEAD;
+
 			$parent_dep_id = $parent_dep->IBLOCK_SECTION_ID;
+
+			if ($supervisor_id)
+				$supervisor_ids[] = $supervisor_id;
+
+			$parent_dep = $all_deps->where('ID', $parent_dep_id)->first();
 		}
 
-		$direct_supervisor = User::findOrFail($direct_supervisor_id);
-		return collect([$direct_supervisor]);
+		$supervisors = User::findOrFail($supervisor_ids)->sortBy((function (User $user) use ($supervisor_ids) {
+			foreach ($supervisor_ids as $index => $supervisor_id)
+				if ($supervisor_id === $user->id)
+					return $index;
+		}));
+
+		$supervisors = $supervisors->values();
+		
+		$supervisors->pop();
+		
+		return $supervisors;
 	}
 
 	private function allDepartments(): Collection

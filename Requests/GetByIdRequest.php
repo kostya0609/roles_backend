@@ -8,7 +8,6 @@ class GetByIdRequest extends FormRequest
 	public function rules(): array {
 		return [
 			'id' =>'required|integer',
-			'user_id' => 'required|integer',
 		];
 	}
 
@@ -16,9 +15,6 @@ class GetByIdRequest extends FormRequest
 		return [
 			'id.required' => 'Идентификатор роли не указан',
 			'id.integer' => 'Идентификатор роли должен быть числом',
-
-			'user_id.required' => 'Идентификатор пользователя не указан',
-			'user_id.integer' => 'Идентификатор пользователя должен быть числом',
 		];
 	}
 }

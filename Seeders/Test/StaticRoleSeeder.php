@@ -8,14 +8,11 @@ class StaticRoleSeeder implements SeederInterface
 {
 	function run()
 	{
-		/**
-		 * TODO: Добавить создание связей (участники)
-		 */
 		$data = [
 			[
 				'title' => 'Директор ДПУ',
 				'is_active' => true,
-				'description' => '',
+				'description' => 'Возвращает руководителей ДПУ',
 				'creator_id' => 1,
 			],
 		];

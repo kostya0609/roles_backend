@@ -5,19 +5,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class GetByQueryRequest extends FormRequest
 {
-	public function rules(): array {
+	public function rules(): array
+	{
 		return [
-			'q' => 'required',
-			'user_id' => 'required|integer',
+			'q' => 'nullable',
 		];
 	}
 
-	public function messages(): array {
-		return [
-            'q.required' => 'Строка поиска не указана',
-
-            'user_id.required' => 'Идентификатор пользователя не указан',
-            'user_id.integer' => 'Идентификатор пользователя должен быть числом',
-        ];
+	public function messages(): array
+	{
+		return [];
 	}
 }
